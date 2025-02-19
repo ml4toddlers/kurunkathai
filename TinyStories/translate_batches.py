@@ -12,7 +12,7 @@ def translate_indices(ds, split, start_index, num_batches, batch_size=500, odir=
     for i in tqdm(range(start_index, end_index, batch_size),desc=f"Translating {split}_{start_index}_{end_index}"):
         batch =  ds[split][i:i+batch_size]["text"]
         translated = translator.translate_batch(batch=batch)
-        translated_sublist.extend([ {idx+start_index:item} for idx,item in enumerate(translated)])
+        translated_sublist.extend([ {idx+i:item} for idx,item in enumerate(translated)])
     with open(f"{odir}/{split}_{start_index}_{end_index}.json", "w", encoding='utf-8') as f:
         json.dump(translated_sublist, f, ensure_ascii=False, indent=4)
     return translated_sublist
