@@ -1,0 +1,10 @@
+torch
+numpy
+numpy 
+matplotlib
+transformers
+safetensors
+datasets
+accelerate
+huggingface_hub
+deep_translator
