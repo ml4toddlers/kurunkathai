@@ -1,0 +1,57 @@
+[
+    {
+        "commit_id": "9e20890699bc8ac7517dcd78e4d8568cf968e502",
+        "iter": 100000,
+        "perplexity": 85.94478225531473
+    },
+    {
+        "commit_id": "d854b6818bfe35d575cacf7982dbd62a355452b4",
+        "iter": 90000,
+        "perplexity": 90.21959542453357
+    },
+    {
+        "commit_id": "13c5af2b81c9fe86ea7656105bb27307d5a64d04",
+        "iter": 80000,
+        "perplexity": 91.11193758005348
+    },
+    {
+        "commit_id": "3d4f5aed630addde2f2dd6d3fb66edf1dde44071",
+        "iter": 70000,
+        "perplexity": 97.93579627375593
+    },
+    {
+        "commit_id": "6e4fbd849225620ff33483f497c95eeaa13eac69",
+        "iter": 60000,
+        "perplexity": 101.99649094018211
+    },
+    {
+        "commit_id": "bfd5378f47e437ed81a375695d2e81b181c07bd9",
+        "iter": 50000,
+        "perplexity": 98.97598618399734
+    },
+    {
+        "commit_id": "bea5ff64bd234122dd7b28c8efb1206a8d48a66c",
+        "iter": 40000,
+        "perplexity": 106.59657466421406
+    },
+    {
+        "commit_id": "5d2f6d7b1cacc2cfdb8aba9806c9e0aeb71bddd0",
+        "iter": 30000,
+        "perplexity": 128.64465397497983
+    },
+    {
+        "commit_id": "1f4079a4e3e2035de92e31ab81594ba86b0ef6e5",
+        "iter": 20000,
+        "perplexity": 174.0572033838893
+    },
+    {
+        "commit_id": "eccc6351b6457e9ce713ddeec97b6b05e07ec4f3",
+        "iter": 10000,
+        "perplexity": 442.0398112206074
+    },
+    {
+        "commit_id": "32be578ffc4119656a84b837d12e0fdce80b2b0c",
+        "iter": 1,
+        "perplexity": 50907.32812290145
+    }
+]
