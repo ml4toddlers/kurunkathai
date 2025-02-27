@@ -42,7 +42,10 @@ class GPTNeoLightning(pl.LightningModule):
         perplexity = torch.exp(loss)
         self.log("val_perplexity", perplexity, prog_bar=True, logger=True)
         if batch_idx == 0:  
-            decoded_output = self.tokenizer.decode(outputs.logits.argmax(dim=-1)[0], skip_special_tokens=True)
+            test = "ஏன் இவ்வாறு செய்கிறீர்கள் என்று எழிலன் கேட்க "
+            inputs = self.tokenizer(test, return_tensors="pt").to(self.model.device)
+            output = self.model.generate(**inputs)
+            decoded_output = self.tokenizer.decode(output[-1], skip_special_tokens=True)
             self.logger.log_text("sample_validation_output", columns =[""],data=[[decoded_output]])
         return loss
     
@@ -61,12 +64,14 @@ class GPTNeoLightning(pl.LightningModule):
 
            
 def train(training_config):
+    output_dir =os.path.join("models",training_config["output_dir"])
+    os.makedirs(output_dir, exist_ok=True)
     tokenizer = AutoTokenizer.from_pretrained(training_config["tokenizer_name"])
     wandb_logger = WandbLogger(project="Kurunkathai", name=f"{training_config["output_dir"]}_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         filename="best_val_loss_{val_loss:.2f}",
-        dirpath=training_config["output_dir"],
+        dirpath=output_dir,
         save_top_k=1,
         mode="min",
         save_last=True,
@@ -84,7 +89,7 @@ def train(training_config):
         dataset = load_dataset(training_config["dataset"])
         tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=["text"])        
     
-    tokenizer.save_pretrained(training_config["output_dir"])
+    tokenizer.save_pretrained(output_dir)
     if training_config.get("model_path_dict",None) is not None:
         causalLM = GPTNeoForCausalLM.from_pretrained(**training_config["model_path_dict"])
     else:
@@ -102,7 +107,7 @@ def train(training_config):
         max_epochs=training_config["max_epochs"],
         accelerator="gpu" if torch.cuda.is_available() else "cpu",
         log_every_n_steps=training_config["log_every_n_steps"],
-        default_root_dir=training_config["output_dir"],
+        default_root_dir=output_dir,
         enable_checkpointing=True,
         accumulate_grad_batches=training_config["accumulate_grad_batches"],
         gradient_clip_val=training_config["gradient_clip_val"],
@@ -118,7 +123,7 @@ def train(training_config):
         trainer.callbacks.append(PushToHubCallback())
     
     trainer.fit(model)
-    model.model.save_pretrained(training_config["output_dir"])
+    model.model.save_pretrained(output_dir)
     if training_config.get("push_to_hub", False):
         model.model.push_to_hub(training_config["output_dir"])
 
