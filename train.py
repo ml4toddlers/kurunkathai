@@ -27,6 +27,7 @@ class GPTNeoLightning(pl.LightningModule):
         self.batch_size = training_config["batch_size"]
         self.data_collator = DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=False)
         self.num_cpus = os.cpu_count()
+        self.name = training_config["output_dir"]
     
     def forward(self, input_ids, attention_mask=None, labels=None):
         return self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
@@ -48,7 +49,7 @@ class GPTNeoLightning(pl.LightningModule):
             inputs = self.tokenizer(test, return_tensors="pt").to(self.model.device)
             output = self.model.generate(**inputs)
             decoded_output = self.tokenizer.decode(output[-1], skip_special_tokens=True)
-            self.logger.log_text("sample_validation_output", columns =[""],data=[[decoded_output]])
+            self.logger.log_text(f"sample_output_{self.name}", columns =[self.current_epoch],data=[[decoded_output]])
         return loss
     
     def configure_optimizers(self):
