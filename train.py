@@ -11,7 +11,9 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 import datetime
-
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+torch.set_float32_matmul_precision('high')
 class GPTNeoLightning(pl.LightningModule):
     def __init__(self, causalLM, tokenizer, train_dataset, val_dataset, training_config):
         super().__init__()
