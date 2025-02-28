@@ -61,9 +61,10 @@ class GPTNeoLightning(pl.LightningModule):
     
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
+        num_training_steps=len(self.train_dataloader()) * self.trainer.max_epochs
+        num_warmup_steps = int(0.1 * num_training_steps)
         scheduler = get_linear_schedule_with_warmup(
-            optimizer, num_warmup_steps=1000, num_training_steps=len(self.train_dataloader()) * self.trainer.max_epochs
-        )
+            optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps )
         return [optimizer], [scheduler]
     
     def train_dataloader(self):
@@ -74,10 +75,11 @@ class GPTNeoLightning(pl.LightningModule):
 
            
 def train(training_config):
-    output_dir =os.path.join("models",training_config["output_dir"])
+    odir = training_config["output_dir"]
+    output_dir =os.path.join("models",odir)
     os.makedirs(output_dir, exist_ok=True)
     tokenizer = AutoTokenizer.from_pretrained(training_config["tokenizer_name"])
-    wandb_logger = WandbLogger(project="Kurunkathai", name=f"{training_config["output_dir"]}_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
+    wandb_logger = WandbLogger(project="Kurunkathai", name=f"{odir}_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         filename="best_val_loss_{val_loss:.2f}",
@@ -89,7 +91,7 @@ def train(training_config):
     )
 
     def tokenize_function(batch):
-        return tokenizer(batch["text"], truncation=True, padding="max_length", max_length=1024)
+        return tokenizer(batch["text"], truncation=True, padding="longest", max_length = 1024)
     
     if training_config["dataset"] == "CulturaX":
         dataset = load_dataset("uonlp/CulturaX", "ta")
@@ -124,7 +126,6 @@ def train(training_config):
         default_root_dir=output_dir,
         enable_checkpointing=True,
         accumulate_grad_batches=training_config["accumulate_grad_batches"],
-        gradient_clip_val=training_config["gradient_clip_val"],
         callbacks=[checkpoint_callback],
         logger=wandb_logger,
         val_check_interval=training_config.get("val_check_interval",1.0),
