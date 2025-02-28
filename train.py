@@ -119,6 +119,7 @@ def train(training_config):
         causalLM = GPTNeoForCausalLM(config)
 
     model = GPTNeoLightning(causalLM, tokenizer, tokenized_dataset["train"], tokenized_dataset["validation"], training_config)
+    
     trainer = pl.Trainer(
         max_epochs=training_config["max_epochs"],
         accelerator="gpu" if torch.cuda.is_available() else "cpu",

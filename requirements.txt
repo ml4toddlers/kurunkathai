@@ -8,3 +8,5 @@ datasets
 accelerate
 huggingface_hub
 deep_translator
+wandb
+lightning
