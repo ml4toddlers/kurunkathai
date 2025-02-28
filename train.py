@@ -10,10 +10,14 @@ from datasets import load_dataset, DatasetDict
 from torch.utils.data import DataLoader
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
+import warnings
 import datetime
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch.set_float32_matmul_precision('high')
+warnings.simplefilter("always", UserWarning)  
+warnings.filterwarnings("ignore", category=UserWarning, module=".*")  
+
 class GPTNeoLightning(pl.LightningModule):
     def __init__(self, causalLM, tokenizer, train_dataset, val_dataset, training_config):
         super().__init__()
@@ -28,6 +32,7 @@ class GPTNeoLightning(pl.LightningModule):
         self.data_collator = DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=False)
         self.num_cpus = os.cpu_count()
         self.name = training_config["output_dir"]
+        self.num_vals = 0
     
     def forward(self, input_ids, attention_mask=None, labels=None):
         return self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
@@ -49,7 +54,9 @@ class GPTNeoLightning(pl.LightningModule):
             inputs = self.tokenizer(test, return_tensors="pt").to(self.model.device)
             output = self.model.generate(**inputs)
             decoded_output = self.tokenizer.decode(output[-1], skip_special_tokens=True)
-            self.logger.log_text(f"sample_output_{self.name}", columns =[self.current_epoch],data=[[decoded_output]])
+            print(decoded_output)
+            self.logger.log_text(f"sample_output_{self.name}", columns =["epoch", "output"],data=[[self.num_vals,[decoded_output]]])
+            self.num_vals += 1
         return loss
     
     def configure_optimizers(self):
@@ -90,6 +97,10 @@ def train(training_config):
         tokenized_dataset = DatasetDict({"train": dataset["train"].map(tokenize_function, batched=True),"validation": dataset["test"].map(tokenize_function, batched=True)})
     else:
         dataset = load_dataset(training_config["dataset"])
+        if "validation" not in dataset.keys():
+            warnings.warn("Validation set not found. Splitting the training set to create a validation set.")
+            dataset_split = dataset["train"].train_test_split(test_size=0.025, seed=42)
+            dataset = DatasetDict({"train": dataset_split["train"], "validation": dataset_split["test"]})
         tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=["text"])        
     
     tokenizer.save_pretrained(output_dir)
@@ -115,7 +126,8 @@ def train(training_config):
         accumulate_grad_batches=training_config["accumulate_grad_batches"],
         gradient_clip_val=training_config["gradient_clip_val"],
         callbacks=[checkpoint_callback],
-        logger=wandb_logger
+        logger=wandb_logger,
+        val_check_interval=training_config.get("val_check_interval",1.0),
     )
     if training_config.get("push_to_hub", False):
         class PushToHubCallback(pl.Callback):
