@@ -1,8 +1,7 @@
 from transformers import GPTNeoConfig, GPTNeoForCausalLM, Trainer, TrainingArguments, DataCollatorForLanguageModeling, AutoModelForCausalLM
 from transformers import AutoTokenizer
 from datasets import load_dataset, DatasetDict
-import torch
-import math
+from peft import get_peft_model, LoraConfig, TaskType
 import argparse
 import os
 import json
@@ -58,6 +57,10 @@ def train(training_config):
         )
         causalLM = GPTNeoForCausalLM(config)
     
+    if "lora_config" in training_config:
+        lora_config = LoraConfig(task_type=TaskType.CAUSAL_LM, inference_mode=False, **training_config["lora_config"])
+        causalLM = get_peft_model(causalLM, lora_config)
+
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer,
         mlm=False)
@@ -77,7 +80,7 @@ def train(training_config):
         do_train=True,
         do_eval=True,
         gradient_accumulation_steps=training_config["accumulate_grad_batches"],
-        fp16=torch.cuda.is_available(),
+        fp16=True,
         push_to_hub=training_config["push_to_hub"],
         report_to="wandb"
     )
