@@ -80,7 +80,7 @@ def train(training_config):
         do_train=True,
         do_eval=True,
         gradient_accumulation_steps=training_config["accumulate_grad_batches"],
-        weight_decay = training_config["weight_decay"]
+        weight_decay = training_config["weight_decay"],
         fp16=True,
         push_to_hub=training_config["push_to_hub"],
         report_to="wandb"
