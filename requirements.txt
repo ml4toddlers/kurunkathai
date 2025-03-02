@@ -13,3 +13,4 @@ evaluate
 peft
 fairseq
 protobuf
+sentencepiece
