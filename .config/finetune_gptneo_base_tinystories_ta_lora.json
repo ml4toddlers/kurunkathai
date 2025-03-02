@@ -1,5 +1,5 @@
 {
-    "output_dir": "finetuned_gptneo-base-tinystories-ta_w",
+    "output_dir": "finetuned_gptneo-base-tinystories-ta_lora",
     "log_every_n_steps": 50,
     "dataset":"tniranjan/tinystories_ta_google_translate",
     "model_path_dict":{"pretrained_model_name_or_path":"tniranjan/gptNeo-ta", "revision":"6e4fbd849225620ff33483f497c95eeaa13eac69"},
@@ -12,5 +12,10 @@
     "push_to_hub": true,
     "val_check_interval": 0.2,
     "num_checkpoints_to_keep"  : 4,
-    "default_train_test_split" :0.05
+    "default_train_test_split" :0.05,
+    "lora_config":{
+        "r":8,
+        "lora_alpha":32,
+        "lora_dropout":0.1
+    }
 }
