@@ -10,7 +10,7 @@
     "batch_size": 8,
     "weight_decay":0.01,
     "push_to_hub": true,
-    "val_check_interval": 0.2,
+    "val_check_interval": 0.025,
     "num_checkpoints_to_keep"  : 4,
     "default_train_test_split" :0.05,
     "lora_config":{
