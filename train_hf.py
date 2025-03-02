@@ -96,6 +96,7 @@ def train(training_config):
     )
 
     # Train the model
+    trainer.evaluate() 
     trainer.train()
 
     # Save final model and tokenizer
