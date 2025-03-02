@@ -18,5 +18,4 @@ for filename in os.listdir(data_dir):
 data.sort(key=lambda x: x["row"])
 sorted_text_data = [{"text": item["text"]} for item in data]
 dataset = datasets.DatasetDict({"train":datasets.Dataset.from_list(sorted_text_data)})
-dataset.save_to_disk("tinystories_ta_google_translate")
 dataset.push_to_hub("tniranjan/tinystories_ta_google_translate")
