@@ -1,5 +1,4 @@
 torch
-numpy
 numpy 
 matplotlib
 transformers
@@ -10,3 +9,5 @@ huggingface_hub
 deep_translator
 wandb
 lightning
+evaluate
+flash-attn
