@@ -7,6 +7,8 @@ import os
 import json
 import evaluate
 import warnings
+import torch
+import numpy as np
 
 os.environ["WANDB_PROJECT"] = "Kurunkathai" 
 os.environ["WANDB_LOG_MODEL"] = "checkpoint"
@@ -27,8 +29,12 @@ def train(training_config):
     
     def compute_metrics(eval_pred):
         preds, labels = eval_pred
+        if isinstance(preds, torch.Tensor): 
+            preds = torch.argmax(preds, dim=-1) 
+        elif isinstance(preds, np.ndarray):  
+            preds = np.argmax(preds, axis=-1)  
         decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
-        mean_ppl = perplexity_eval.compute(predictions = decoded_preds, model_id = "gpt_neo", add_start_token=False, batch_size = training_config["batch_size"])["mean_perplexity"]
+        mean_ppl = perplexity_eval.compute(predictions = decoded_preds, model_id = training_config["model_path_dict"]["pretrained_model_name_or_path"], add_start_token=False, batch_size = training_config["batch_size"])["mean_perplexity"]
         return {"perplexity": mean_ppl}
       
     if training_config["dataset"] == "CulturaX":
@@ -64,6 +70,11 @@ def train(training_config):
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer,
         mlm=False)
+    def preprocess_logits_for_metrics(logits, labels):
+        if isinstance(logits, tuple):
+            logits = logits[0]
+        # logits should be [bs, seq_len, hidden_size]
+        return logits[:,0,:] 
 
     training_args = TrainingArguments(
         output_dir=output_dir,
@@ -83,7 +94,7 @@ def train(training_config):
         weight_decay = training_config["weight_decay"],
         fp16=True,
         push_to_hub=training_config["push_to_hub"],
-        report_to="wandb"
+        report_to="wandb",
     )
 
     trainer = Trainer(
@@ -92,7 +103,8 @@ def train(training_config):
         train_dataset=tokenized_dataset["train"],
         eval_dataset=tokenized_dataset["validation"],
         data_collator=data_collator,
-        compute_metrics=compute_metrics,
+#        compute_metrics=compute_metrics,
+#        preprocess_logits_for_metrics=preprocess_logits_for_metrics
     )
 
     # Train the model
