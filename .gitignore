@@ -1,5 +1,6 @@
 models/*
 wandb/*
+datasets/*
 outputs/*
 logs/*
 # Byte-compiled / optimized / DLL files
