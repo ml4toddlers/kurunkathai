@@ -4,7 +4,7 @@ import math
 import argparse
 import torch
 import pytorch_lightning as pl
-from transformers import (GPTNeoConfig, GPTNeoForCausalLM, AutoTokenizer,
+from transformers import (GPTNeoConfig, GPTNeoForCausalLM, AutoTokenizer, AutoModelForCausalLM,
                           DataCollatorForLanguageModeling, AdamW, get_linear_schedule_with_warmup)
 from datasets import load_dataset, DatasetDict
 from torch.utils.data import DataLoader
@@ -95,19 +95,19 @@ def train(training_config):
     
     if training_config["dataset"] == "CulturaX":
         dataset = load_dataset("uonlp/CulturaX", "ta")
-        dataset = dataset["train"].train_test_split(test_size=0.1, seed=42)
+        dataset = dataset["train"].train_test_split(test_size=training_config["default_train_test_split"], seed=42)
         tokenized_dataset = DatasetDict({"train": dataset["train"].map(tokenize_function, batched=True),"validation": dataset["test"].map(tokenize_function, batched=True)})
     else:
         dataset = load_dataset(training_config["dataset"])
         if "validation" not in dataset.keys():
             warnings.warn("Validation set not found. Splitting the training set to create a validation set.")
-            dataset_split = dataset["train"].train_test_split(test_size=0.025, seed=42)
+            dataset_split = dataset["train"].train_test_split(test_size=training_config["default_train_test_split"], seed=42)
             dataset = DatasetDict({"train": dataset_split["train"], "validation": dataset_split["test"]})
         tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=["text"])        
     
     tokenizer.save_pretrained(output_dir)
     if training_config.get("model_path_dict",None) is not None:
-        causalLM = GPTNeoForCausalLM.from_pretrained(**training_config["model_path_dict"])
+        causalLM = AutoModelForCausalLM.from_pretrained(**training_config["model_path_dict"])
     else:
         config = GPTNeoConfig(
             vocab_size=tokenizer.vocab_size,
