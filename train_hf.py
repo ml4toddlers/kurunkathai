@@ -92,9 +92,10 @@ def train(training_config):
         do_eval=True,
         gradient_accumulation_steps=training_config["accumulate_grad_batches"],
         weight_decay = training_config["weight_decay"],
-        fp16=True,
+        fp16=False,
         push_to_hub=training_config["push_to_hub"],
         report_to="wandb",
+        max_grad_norm = training_config["max_grad_norm"]
     )
 
     trainer = Trainer(

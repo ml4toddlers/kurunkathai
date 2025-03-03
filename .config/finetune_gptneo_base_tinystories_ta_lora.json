@@ -5,7 +5,7 @@
     "model_path_dict":{"pretrained_model_name_or_path":"tniranjan/gptNeo-ta", "revision":"6e4fbd849225620ff33483f497c95eeaa13eac69"},
     "max_epochs":10,
     "accumulate_grad_batches": 2,
-    "learning_rate": 1e-5,
+    "learning_rate": 5e-6,
     "tokenizer_name":"abhinand/tamil-llama-7b-instruct-v0.2",
     "batch_size": 8,
     "weight_decay":0.01,
@@ -15,7 +15,7 @@
     "default_train_test_split" :0.05,
     "lora_config":{
         "r":8,
-        "lora_alpha":32,
+        "lora_alpha":16,
         "lora_dropout":0.1
     }
 }
