@@ -27,10 +27,9 @@ def train(training_config):
     os.makedirs(output_dir, exist_ok=True)
     tokenizer = AutoTokenizer.from_pretrained(training_config["tokenizer_name"])
     
-    if "generated_table" not in wandb.run.config:
-        wandb.run.config.generated_table = wandb.Table(columns=["Run ID", "Eval Step", "Generated Text", "Reference Text"])
+    generated_table = wandb.Table(columns=["Run ID", "Eval Step", "Generated Text", "Reference Text"])
     sample_text = "செல்வன் என்ற சிறுவன் பள்ளிக்கு செல்ல விரும்பாமல்"    
-    sample_text_ids = tokenizer.encode(sample_text, return_tensors="pt")
+    sample_text_ids = tokenizer(sample_text, return_tensors="pt")
 
     def tokenize_function(batch):
         return tokenizer(batch["text"], truncation=True, padding="longest", max_length=1024)
@@ -43,10 +42,8 @@ def train(training_config):
         decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
         mean_ppl = perplexity_eval.compute(predictions = decoded_preds, model_id = training_config["model_path_dict"]["pretrained_model_name_or_path"], add_start_token=False, batch_size = training_config["batch_size"])["mean_perplexity"]
         generated_text = tokenizer.decode(causalLM.generate(**sample_text_ids)[-1], skip_special_tokens=True)
-        table = wandb.run.config.generated_table
-
-        table.add_data(wandb.run.id, trainer.state.global_step, sample_text, generated_text)
-        wandb.log({"Generated Samples": table})
+        generated_table.add_data(wandb.run.id, trainer.state.global_step, sample_text, generated_text)
+        wandb.log({"Generated Samples": generated_table})
         return {"perplexity": mean_ppl}
       
     if training_config["dataset"] == "CulturaX":
