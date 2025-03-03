@@ -8,10 +8,11 @@ import json
 import evaluate
 import warnings
 import torch
-import numpy as np
+import wandb
 
-os.environ["WANDB_PROJECT"] = "Kurunkathai" 
+# os.environ["WANDB_PROJECT"] = "Kurunkathai" 
 os.environ["WANDB_LOG_MODEL"] = "checkpoint"
+
 def train_val_split(dataset, split_ratio=0.9):
     dataset = dataset["train"].train_test_split(test_size=1-split_ratio, seed=42)
     return DatasetDict({"train": dataset["train"], "validation": dataset["test"]})
@@ -19,22 +20,33 @@ def train_val_split(dataset, split_ratio=0.9):
 perplexity_eval = evaluate.load("perplexity", module_type="metric")
 
 def train(training_config):
+    wandb.init(project="Kurunkathai")
+    
     odir = training_config["output_dir"]
     output_dir =os.path.join("models",odir)
     os.makedirs(output_dir, exist_ok=True)
     tokenizer = AutoTokenizer.from_pretrained(training_config["tokenizer_name"])
+    
+    if "generated_table" not in wandb.run.config:
+        wandb.run.config.generated_table = wandb.Table(columns=["Run ID", "Eval Step", "Generated Text", "Reference Text"])
+    sample_text = "செல்வன் என்ற சிறுவன் பள்ளிக்கு செல்ல விரும்பாமல்"    
+    sample_text_ids = tokenizer.encode(sample_text, return_tensors="pt")
 
     def tokenize_function(batch):
         return tokenizer(batch["text"], truncation=True, padding="longest", max_length=1024)
     
+    def preprocess_logits_for_metrics(logits, labels):
+        return torch.argmax(logits, dim=-1)
+
     def compute_metrics(eval_pred):
         preds, labels = eval_pred
-        if isinstance(preds, torch.Tensor): 
-            preds = torch.argmax(preds, dim=-1) 
-        elif isinstance(preds, np.ndarray):  
-            preds = np.argmax(preds, axis=-1)  
         decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
         mean_ppl = perplexity_eval.compute(predictions = decoded_preds, model_id = training_config["model_path_dict"]["pretrained_model_name_or_path"], add_start_token=False, batch_size = training_config["batch_size"])["mean_perplexity"]
+        generated_text = tokenizer.decode(causalLM.generate(**sample_text_ids)[-1], skip_special_tokens=True)
+        table = wandb.run.config.generated_table
+
+        table.add_data(wandb.run.id, trainer.state.global_step, sample_text, generated_text)
+        wandb.log({"Generated Samples": table})
         return {"perplexity": mean_ppl}
       
     if training_config["dataset"] == "CulturaX":
@@ -70,12 +82,8 @@ def train(training_config):
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer,
         mlm=False)
-    def preprocess_logits_for_metrics(logits, labels):
-        if isinstance(logits, tuple):
-            logits = logits[0]
-        # logits should be [bs, seq_len, hidden_size]
-        return logits[:,0,:] 
-
+    
+    
     training_args = TrainingArguments(
         output_dir=output_dir,
         eval_strategy="steps",
@@ -104,8 +112,8 @@ def train(training_config):
         train_dataset=tokenized_dataset["train"],
         eval_dataset=tokenized_dataset["validation"],
         data_collator=data_collator,
-#        compute_metrics=compute_metrics,
-#        preprocess_logits_for_metrics=preprocess_logits_for_metrics
+       compute_metrics=compute_metrics,
+       preprocess_logits_for_metrics=preprocess_logits_for_metrics
     )
 
     # Train the model
