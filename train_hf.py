@@ -65,6 +65,8 @@ def train(training_config):
         if causalLM.config.vocab_size != tokenizer.vocab_size:
             warnings.warn("Resizing token embeddings to match the tokenizer's vocab size.")
             causalLM.resize_token_embeddings(tokenizer.vocab_size)
+            causalLM.config.vocab_size = tokenizer.vocab_size
+            causalLM.config.pad_token_id = tokenizer.pad_token_id
     else:
         config = GPTNeoConfig(
             vocab_size=tokenizer.vocab_size,
@@ -120,7 +122,7 @@ def train(training_config):
        compute_metrics=compute_metrics,
        preprocess_logits_for_metrics=preprocess_logits_for_metrics
     )
-
+    
     # Train the model
     trainer.evaluate() 
     trainer.train()
