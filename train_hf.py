@@ -26,19 +26,21 @@ def train(training_config):
     output_dir =os.path.join("models",odir)
     os.makedirs(output_dir, exist_ok=True)
     tokenizer = AutoTokenizer.from_pretrained(training_config["tokenizer_name"])
-    
+    device = "cuda" if torch.cuda.is_available else "cpu"
+    print(f"Selecting device {device}")
     generated_table = wandb.Table(columns=["Run ID", "Eval Step", "Generated Text", "Reference Text"])
     sample_text = "செல்வன் என்ற சிறுவன் பள்ளிக்கு செல்ல விரும்பாமல்"    
-    sample_text_ids = tokenizer(sample_text, return_tensors="pt")
+    sample_text_ids = tokenizer(sample_text, return_tensors="pt").to(device)
 
     def tokenize_function(batch):
         return tokenizer(batch["text"], truncation=True, padding="longest", max_length=1024)
     
     def preprocess_logits_for_metrics(logits, labels):
         return torch.argmax(logits, dim=-1)
-
+        
     def compute_metrics(eval_pred):
         preds, labels = eval_pred
+        preds[preds==-100] = tokenizer.pad_token_id
         decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
         mean_ppl = perplexity_eval.compute(predictions = decoded_preds, model_id = training_config["model_path_dict"]["pretrained_model_name_or_path"], add_start_token=False, batch_size = training_config["batch_size"])["mean_perplexity"]
         generated_text = tokenizer.decode(causalLM.generate(**sample_text_ids)[-1], skip_special_tokens=True)
@@ -124,12 +126,14 @@ def train(training_config):
     )
     
     # Train the model
+    causalLM.push_to_hub(odir, commit_message="Before training")
     trainer.evaluate() 
     trainer.train()
 
     # Save final model and tokenizer
     causalLM.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)
+    causalLM.push_to_hub(odir, commit_message="Training complete")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()    
