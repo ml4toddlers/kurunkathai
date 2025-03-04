@@ -39,14 +39,17 @@ def train(training_config):
         return torch.argmax(logits, dim=-1)
         
     def compute_metrics(eval_pred):
-        preds, labels = eval_pred
-        preds[preds==-100] = tokenizer.pad_token_id
-        decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
-        mean_ppl = perplexity_eval.compute(predictions = decoded_preds, model_id = training_config["model_path_dict"]["pretrained_model_name_or_path"], add_start_token=False, batch_size = training_config["batch_size"])["mean_perplexity"]
+        # preds, labels = eval_pred
+        # print(preds.shape)
+        # preds = preds[:, :causalLM.config.max_position_embeddings]
+        # print(preds.shape)
+        # preds[preds==-100] = tokenizer.pad_token_id
+        # decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True, truncate=True,)
+        # mean_ppl = perplexity_eval.compute(predictions = decoded_preds, model_id = training_config["model_path_dict"]["pretrained_model_name_or_path"], add_start_token=False, batch_size = training_config["batch_size"])["mean_perplexity"]
         generated_text = tokenizer.decode(causalLM.generate(**sample_text_ids)[-1], skip_special_tokens=True)
         generated_table.add_data(wandb.run.id, trainer.state.global_step, sample_text, generated_text)
         wandb.log({"Generated Samples": generated_table})
-        return {"perplexity": mean_ppl}
+        return {"perplexity": 0}
       
     if training_config["dataset"] == "CulturaX":
         dataset = load_dataset("uonlp/CulturaX", "ta")
@@ -127,7 +130,7 @@ def train(training_config):
     
     # Train the model
     causalLM.push_to_hub(odir, commit_message="Before training")
-    trainer.evaluate() 
+    # trainer.evaluate() 
     trainer.train()
 
     # Save final model and tokenizer
