@@ -62,7 +62,7 @@ def train(training_config):
 
     if training_config.get("model_path_dict",None) is not None:
         causalLM = AutoModelForCausalLM.from_pretrained(**training_config["model_path_dict"])
-        if causalLM.vocab_size != tokenizer.vocab_size:
+        if causalLM.config.vocab_size != tokenizer.vocab_size:
             warnings.warn("Resizing token embeddings to match the tokenizer's vocab size.")
             causalLM.resize_token_embeddings(tokenizer.vocab_size)
     else:
