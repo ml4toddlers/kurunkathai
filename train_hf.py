@@ -62,6 +62,9 @@ def train(training_config):
 
     if training_config.get("model_path_dict",None) is not None:
         causalLM = AutoModelForCausalLM.from_pretrained(**training_config["model_path_dict"])
+        if causalLM.vocab_size != tokenizer.vocab_size:
+            warnings.warn("Resizing token embeddings to match the tokenizer's vocab size.")
+            causalLM.resize_token_embeddings(tokenizer.vocab_size)
     else:
         config = GPTNeoConfig(
             vocab_size=tokenizer.vocab_size,
@@ -71,7 +74,7 @@ def train(training_config):
             max_position_embeddings=1024,
         )
         causalLM = GPTNeoForCausalLM(config)
-    
+   
     if "lora_config" in training_config:
         lora_config = LoraConfig(task_type=TaskType.CAUSAL_LM, inference_mode=False, **training_config["lora_config"])
         causalLM = get_peft_model(causalLM, lora_config)
@@ -102,6 +105,11 @@ def train(training_config):
         report_to="wandb",
         max_grad_norm = training_config["max_grad_norm"]
     )
+
+    if "adam_beta1" in training_config:
+        training_args.adam_beta1 = training_config["adam_beta1"]
+    if "adam_beta2" in training_config:
+        training_args.adam_beta2 = training_config["adam_beta2"]
 
     trainer = Trainer(
         model=causalLM,
