@@ -1,3 +1,4 @@
+from ast import arg
 from transformers import GPTNeoConfig, GPTNeoForCausalLM, Trainer, TrainingArguments, DataCollatorForLanguageModeling, AutoModelForCausalLM
 from transformers import AutoTokenizer
 from datasets import load_dataset, DatasetDict
@@ -9,6 +10,9 @@ import evaluate
 import warnings
 import torch
 import wandb
+import torch
+import torch.nn.functional as F
+import numpy as np
 
 # os.environ["WANDB_PROJECT"] = "Kurunkathai" 
 os.environ["WANDB_LOG_MODEL"] = "checkpoint"
@@ -34,20 +38,7 @@ def train(training_config):
 
     def tokenize_function(batch):
         return tokenizer(batch["text"], truncation=True, padding="longest", max_length=1024)
-    
-    def preprocess_logits_for_metrics(logits, labels):
-        return torch.argmax(logits, dim=-1)
-        
-    def compute_metrics(eval_pred):
-        preds, labels = eval_pred
-        preds[preds==-100] = tokenizer.pad_token_id
-        decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True, truncate=True,)
-        mean_ppl = perplexity_eval.compute(predictions = decoded_preds, model_id = output_dir, add_start_token=False, batch_size = training_config["batch_size"])["mean_perplexity"]
-        generated_text = tokenizer.decode(causalLM.generate(**sample_text_ids)[-1], skip_special_tokens=True)
-        generated_table.add_data(wandb.run.id, trainer.state.global_step, sample_text, generated_text)
-        wandb.log({"Generated Samples": generated_table})
-        return {"perplexity": mean_ppl}
-      
+   
     if training_config["dataset"] == "CulturaX":
         dataset = load_dataset("uonlp/CulturaX", "ta")
         dataset = dataset["train"].train_test_split(test_size=training_config["default_train_test_split"], seed=42)
@@ -68,7 +59,7 @@ def train(training_config):
             warnings.warn("Resizing token embeddings to match the tokenizer's vocab size.")
             causalLM.resize_token_embeddings(tokenizer.vocab_size)
             causalLM.config.vocab_size = tokenizer.vocab_size
-            causalLM.config.pad_token_id = tokenizer.pad_token_id
+        causalLM.config.pad_token_id = tokenizer.pad_token_id
     else:
         config = GPTNeoConfig(
             vocab_size=tokenizer.vocab_size,
@@ -88,11 +79,38 @@ def train(training_config):
         mlm=False)
     
     class CustomTrainer(Trainer):
-        def evaluate(self, *args, **kwargs):
-            self.save_model()
-            tokenizer.save_pretrained(self.args.output_dir)
-            return super().evaluate(*args, **kwargs)
+        def __init__(self, *args, eval_datasets, **kwargs):
+            kwargs["eval_dataset"] = eval_datasets[0] if eval_datasets else None
+            super().__init__(*args, **kwargs)
+            self.eval_datasets = eval_datasets if eval_datasets is not None else [self.eval_dataset]
 
+        def evaluate(self, eval_dataset=None, ignore_keys=None, metric_key_prefix="eval",  **kwargs):
+            generated_text = tokenizer.decode(causalLM.generate(**sample_text_ids)[-1], skip_special_tokens=True)            
+            generated_table.add_data(wandb.run.id, trainer.state.global_step, sample_text, generated_text)
+            wandb.log({"generated_text": generated_table})
+            results = {}
+
+            datasets = self.eval_datasets  # Use stored datasets
+            
+            for i, dataset in enumerate(datasets):
+                output = super().evaluate(
+                    eval_dataset=dataset,
+                    ignore_keys=ignore_keys,
+                    metric_key_prefix=f"{metric_key_prefix}_dataset_{i}",
+                    **kwargs
+                )
+                eval_loss = output.get(f"{metric_key_prefix}_dataset_{i}_loss")
+                perplexity = torch.exp(torch.tensor(eval_loss)).item()
+                output[f"{metric_key_prefix}_dataset_{i}_perplexity"] = perplexity
+                wandb.log({f"perplexity_dataset_{i}": perplexity})
+                results.update(output)
+            print(results)
+            return results
+
+    if "hq_dataset" in training_config:
+        eval_dataset = [tokenized_dataset["validation"], load_dataset(training_config["hq_dataset"])["validation"].map(tokenize_function, batched=True)]
+    else:
+        eval_dataset = [tokenized_dataset["validation"]]
     training_args = TrainingArguments(
         output_dir=output_dir,
         eval_strategy="steps",
@@ -100,7 +118,7 @@ def train(training_config):
         save_strategy="steps",
         save_steps = training_config["val_check_interval"],
         per_device_train_batch_size=training_config["batch_size"],
-        per_device_eval_batch_size=training_config["batch_size"],
+        per_device_eval_batch_size=4*training_config["batch_size"],
         learning_rate = training_config["learning_rate"],
         num_train_epochs=training_config["max_epochs"],
         save_total_limit=training_config["num_checkpoints_to_keep"],
@@ -124,11 +142,9 @@ def train(training_config):
         model=causalLM,
         args=training_args,
         train_dataset=tokenized_dataset["train"],
-        eval_dataset=tokenized_dataset["validation"],
-        data_collator=data_collator,
-       compute_metrics=compute_metrics,
-       preprocess_logits_for_metrics=preprocess_logits_for_metrics
-    )
+        eval_datasets=eval_dataset,
+        eval_dataset=eval_dataset[0],
+        data_collator=data_collator)
     
     # Train the model
     causalLM.push_to_hub(odir, commit_message="Before training")
