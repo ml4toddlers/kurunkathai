@@ -68,8 +68,8 @@ def rate_story(story):
     return ratings
 
 
-def generate_and_rate(model_config):
-    with open(model_config, "r") as f:
+def generate_and_rate(model_config_path):
+    with open(model_config_path, "r") as f:
         model_config = json.load(f)
 
     tokenizer = AutoTokenizer.from_pretrained(model_config["tokenizer_name"])
@@ -83,9 +83,9 @@ def generate_and_rate(model_config):
         output = model.generate(input_ids, max_new_tokens= 250, pad_token_id=tokenizer.eos_token_id, do_sample=True, top_k=100, attention_mask=input_ids.ne(tokenizer.pad_token_id))
         story =tokenizer.decode(output[0], skip_special_tokens=True)
         generated_stories.append(f"""{story}""")
-    json.dump(generated_stories, open("stories.json", "w",encoding="utf-8"), ensure_ascii=True, indent=4)
+    json.dump(generated_stories, open(model_config_path.replace("model_config", "stories"), "w",encoding="utf-8"), ensure_ascii=True, indent=4)
     ratings = [{**rate_story(story)[-1],**{"story":story}} for story in generated_stories]
-    json.dump(ratings, open("eval.json", "w",encoding="utf-8"), ensure_ascii=True, indent=4)
+    json.dump(ratings, open(model_config_path.replace("model_config", "eval"), "w",encoding="utf-8"), ensure_ascii=True, indent=4)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
