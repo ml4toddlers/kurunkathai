@@ -17,21 +17,19 @@ gpt3_5 = "gpt-3.5-turbo"
 gpt4o = "gpt-4o-2024-08-06"
 gpt4o_mini="gpt-4o-mini"
 
-
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
-def rate_stories(stories):
-    formatted_stories = "\n\n".join([f"Story {i+1}: {story}" for i, story in enumerate(stories)])
-
+def rate_story(story):
+    
     system_message = """You are a strict story evaluator. 
-    Always return exactly four numbers for each story in this order: Creativity,Consistency,Grammar,Plot.
+    Always return exactly four numbers for the following story in this order: Creativity,Consistency,Grammar,Plot.
     Format example: 7,8,9,6
     Do not add any extra text or explanations."""
 
     user_prompt = f"""
-    Rate each Tamil story below on a scale of 0-10 for Creativity, Consistency, Grammar, and Plot.
+    Rate the Tamil story below on a scale of 0-10 for Creativity, Consistency, Grammar, and Plot.
 
-    {formatted_stories}
+    {story}
 
     Respond with one line per story in the format: Creativity,Consistency,Grammar,Plot.
     """
@@ -40,7 +38,7 @@ def rate_stories(stories):
         model=gpt4o_mini,
         messages=[{"role": "system", "content": system_message},
                   {"role": "user", "content": user_prompt}],
-        max_tokens=10 * len(stories),  
+        max_tokens=10 ,  
         temperature=0
     )
 
@@ -60,8 +58,7 @@ def rate_stories(stories):
                     "Creativity": creativity,
                     "Consistency": consistency,
                     "Grammar": grammar,
-                    "Plot": plot,
-                    "Story": stories[i]
+                    "Plot": plot
                 })
             except ValueError:
                 print(f"Skipping invalid response for Story {i+1}: {scores}")  # Debugging output
@@ -77,18 +74,19 @@ def generate_and_rate(model_config):
 
     tokenizer = AutoTokenizer.from_pretrained(model_config["tokenizer_name"])
     model = AutoModelForCausalLM.from_pretrained(**model_config["model_path_dict"])
-    test_prompts = json.load(open("evaluation/test.json"))
+    test_prompts = json.load(open("test.json"))
     test_prompts = [prompt for group in test_prompts.values() for prompt in group]
     generated_stories = []
 
     for prompt in tqdm.tqdm(test_prompts):
         input_ids = tokenizer.encode(prompt, return_tensors="pt")
         output = model.generate(input_ids, max_new_tokens= 250, pad_token_id=tokenizer.eos_token_id, do_sample=True, top_k=100, attention_mask=input_ids.ne(tokenizer.pad_token_id))
-        generated_stories.append(tokenizer.decode(output[0], skip_special_tokens=True))
+        story =tokenizer.decode(output[0], skip_special_tokens=True)
+        generated_stories.append(f"""{story}""")
+    json.dump(generated_stories, open("stories.json", "w", ensure_ascii=True,encoding="utf-8"), indent=4)
+    ratings = [{**rate_story(story)[-1],**{"story":story}} for story in generated_stories]
+    json.dump(ratings, open("eval.json", "w"), indent=4)
 
-    ratings = rate_stories(generated_stories)
-    json.dump(ratings, open(model_config.replace("model_config", "eval"), "w"), indent=4)
-    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_config", type=str)
