@@ -1,5 +1,5 @@
 from ast import arg
-from transformers import GPTNeoConfig, GPTNeoForCausalLM, Trainer, TrainingArguments, DataCollatorForLanguageModeling, AutoModelForCausalLM
+from transformers import GPTNeoConfig, GPTNeoForCausalLM, LlamaForCausalLM,LlamaConfig , Trainer, TrainingArguments, DataCollatorForLanguageModeling, AutoModelForCausalLM
 from transformers import AutoTokenizer
 from datasets import load_dataset, DatasetDict
 from peft import get_peft_model, LoraConfig, TaskType
@@ -61,14 +61,19 @@ def train(training_config):
             causalLM.config.vocab_size = tokenizer.vocab_size
         causalLM.config.pad_token_id = tokenizer.pad_token_id
     else:
-        config = GPTNeoConfig(
-            vocab_size=tokenizer.vocab_size,
-            attention_types=[[['global', 'local'], 4]],
-            num_layers=8,
-            hidden_size=1024,
-            max_position_embeddings=1024,
-        )
-        causalLM = GPTNeoForCausalLM(config)
+        if training_config.get("GPTNeo",True):
+            config = GPTNeoConfig(
+                vocab_size=tokenizer.vocab_size,
+                attention_types=[[['global', 'local'], 4]],
+                num_layers=8,
+                hidden_size=1024,
+                max_position_embeddings=1024,
+            )
+            causalLM = GPTNeoForCausalLM(config)
+        else:
+            config = LlamaConfig(vocab_size=tokenizer.vocab_size, attention_bias = False,attention_dropout= 0.1, bos_token_id= tokenizer.bos_token_id,  eos_token_id= tokenizer.eos_token_id, hidden_act= "silu", hidden_size= 512,  initializer_range=0.041666666666666664, intermediate_size= 1536, is_llama_config= True, max_position_embeddings= 512, model_type= "llama",  num_attention_heads= 8,  num_hidden_layers= 4, num_key_value_heads= 4,  pretraining_tp= 1,  rms_norm_eps= 1e-05,  rope_interleaved= False, rope_scaling=None ,rope_theta=100000)
+            causalLM = LlamaForCausalLM(config)
+    eval_batch_mult = 4 if training_config("GPTNeo", True) else 1
    
     if "lora_config" in training_config:
         lora_config = LoraConfig(task_type=TaskType.CAUSAL_LM, inference_mode=False, **training_config["lora_config"])
@@ -104,7 +109,6 @@ def train(training_config):
                 output[f"{metric_key_prefix}_dataset_{i}_perplexity"] = perplexity
                 wandb.log({f"perplexity_dataset_{i}": perplexity})
                 results.update(output)
-            print(results)
             return results
 
     if "hq_dataset" in training_config:
@@ -118,7 +122,7 @@ def train(training_config):
         save_strategy="steps",
         save_steps = training_config["val_check_interval"],
         per_device_train_batch_size=training_config["batch_size"],
-        per_device_eval_batch_size=4*training_config["batch_size"],
+        per_device_eval_batch_size= eval_batch_mult*training_config["batch_size"],
         learning_rate = training_config["learning_rate"],
         num_train_epochs=training_config["max_epochs"],
         save_total_limit=training_config["num_checkpoints_to_keep"],
