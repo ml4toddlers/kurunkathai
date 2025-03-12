@@ -80,10 +80,10 @@ def train(training_config):
     if "lora_config" in training_config:
         if resized_vocab:
             for name, param in causalLM.named_parameters():
-        if "wte" in name: 
-            param.requires_grad = True 
-        else:
-            param.requires_grad = False 
+                if "wte" in name: 
+                    param.requires_grad = True 
+                else:
+                    param.requires_grad = False 
         lora_config = LoraConfig(task_type=TaskType.CAUSAL_LM, inference_mode=False, **training_config["lora_config"])
         causalLM = get_peft_model(causalLM, lora_config)
 
