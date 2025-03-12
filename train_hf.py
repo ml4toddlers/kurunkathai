@@ -73,7 +73,7 @@ def train(training_config):
         else:
             config = LlamaConfig(vocab_size=tokenizer.vocab_size, attention_bias = False,attention_dropout= 0.1, bos_token_id= tokenizer.bos_token_id,  eos_token_id= tokenizer.eos_token_id, hidden_act= "silu", hidden_size= 512,  initializer_range=0.041666666666666664, intermediate_size= 1536, is_llama_config= True, max_position_embeddings= 512, model_type= "llama",  num_attention_heads= 8,  num_hidden_layers= 4, num_key_value_heads= 4,  pretraining_tp= 1,  rms_norm_eps= 1e-05,  rope_interleaved= False, rope_scaling=None ,rope_theta=100000)
             causalLM = LlamaForCausalLM(config)
-    eval_batch_mult = 4 if training_config("GPTNeo", True) else 1
+    eval_batch_mult = 1#4 if training_config.get("GPTNeo", True) else 1
    
     if "lora_config" in training_config:
         lora_config = LoraConfig(task_type=TaskType.CAUSAL_LM, inference_mode=False, **training_config["lora_config"])
