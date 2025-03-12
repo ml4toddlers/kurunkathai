@@ -55,10 +55,12 @@ def train(training_config):
 
     if training_config.get("model_path_dict",None) is not None:
         causalLM = AutoModelForCausalLM.from_pretrained(**training_config["model_path_dict"])
+        resized_vocab = False
         if causalLM.config.vocab_size != tokenizer.vocab_size:
             warnings.warn("Resizing token embeddings to match the tokenizer's vocab size.")
             causalLM.resize_token_embeddings(tokenizer.vocab_size)
             causalLM.config.vocab_size = tokenizer.vocab_size
+            resized_vocab = True
         causalLM.config.pad_token_id = tokenizer.pad_token_id
     else:
         if training_config.get("GPTNeo",True):
@@ -76,6 +78,12 @@ def train(training_config):
     eval_batch_mult = 1#4 if training_config.get("GPTNeo", True) else 1
    
     if "lora_config" in training_config:
+        if resized_vocab:
+            for name, param in causalLM.named_parameters():
+        if "wte" in name: 
+            param.requires_grad = True 
+        else:
+            param.requires_grad = False 
         lora_config = LoraConfig(task_type=TaskType.CAUSAL_LM, inference_mode=False, **training_config["lora_config"])
         causalLM = get_peft_model(causalLM, lora_config)
 
