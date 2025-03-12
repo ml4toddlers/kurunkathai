@@ -1,5 +1,5 @@
 {
-    "output_dir": "finetuned_tinystories_33M_tinystories_ta",
+    "output_dir": "finetuned_tinystories_33M_tinystories_ta_lora",
     "log_every_n_steps": 50,
     "dataset":"tniranjan/tinystories_ta_google_translate",
     "model_path_dict":{"pretrained_model_name_or_path":"roneneldan/TinyStories-33M"},
