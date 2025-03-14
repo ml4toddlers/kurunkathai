@@ -1,5 +1,10 @@
 [
     {
+        "commit_id": "1d49f975a6c5d3cf7dbfa0ac47b66dd24029fcf1",
+        "iter": 110000,
+        "perplexity": 89.92641704337913
+    },
+    {
         "commit_id": "9e20890699bc8ac7517dcd78e4d8568cf968e502",
         "iter": 100000,
         "perplexity": 85.94478225531473
