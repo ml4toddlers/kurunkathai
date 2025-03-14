@@ -3,6 +3,7 @@ wandb/*
 datasets/*
 outputs/*
 logs/*
+evaluation/*
 .env
 .vscode/*
 # Byte-compiled / optimized / DLL files

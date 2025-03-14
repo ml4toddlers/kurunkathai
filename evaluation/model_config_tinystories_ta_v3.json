@@ -1,7 +1,0 @@
-{
-    "model_path_dict": {
-        "pretrained_model_name_or_path": "tniranjan/finetuned_gptneo-base-tinystories-ta_v3",
-        "revision": "main"
-    },
-    "tokenizer_name": "tniranjan/finetuned_gptneo-base-tinystories-ta_v3"
-}
