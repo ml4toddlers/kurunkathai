@@ -3,9 +3,15 @@ wandb/*
 datasets/*
 outputs/*
 logs/*
-evaluation/*
 .env
 .vscode/*
+evaluation/stories*
+evaluation/eval*
+evaluation/*.png
+evaluation/model*
+evaluation/perpl*
+
+evaluation/avg*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
