@@ -22,7 +22,7 @@ title: Kurunkathai - குறுங்கதை - Teeny Tiny Stories
 email: ml4toddlers@duck.com
 description: >- # this means to ignore newlines until "baseurl:"
   Machine Learning for Toddlers is a blog that serves no purpose other than wasting your time and mine.
-baseurl: "" # the subpath of your site, e.g. /blog
+baseurl: "/kurunkathai" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 github_username:  ml4toddlers
 
