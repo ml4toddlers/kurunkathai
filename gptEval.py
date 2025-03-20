@@ -35,7 +35,7 @@ def rate_story(stories, language="Tamil"):
         Do not add any extra text or explanations."""
 
         user_prompt = f"""
-        Rate the {language} story below on a scale of 0-10 for Creativity, Consistency, Grammar, and Plot.
+        Rate the {language} story below on a scale of 0-10 for Creativity, Consistency, Grammar, and Plot. Remember, the stories are for children below 4 years old. The complexity, vocabulary and themes should be suitable for that age group. Keep this in mind while rating the stories.
 
         {story}
 
