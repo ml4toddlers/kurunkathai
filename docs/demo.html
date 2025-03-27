@@ -1,17 +1,62 @@
-<html>
+<!DOCTYPE html>
 	<head>
 		<script type="module" crossorigin src="https://cdn.jsdelivr.net/npm/@gradio/lite/dist/lite.js"></script>
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gradio/lite/dist/lite.css" />
-	</head>
+	 <style>
+      /* Style the body for a neutral background and remove default margins */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f5f5f5;
+      }
+      /* Center the Gradio Lite app and add padding */
+      gradio-lite {
+        display: block;
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-sizing: border-box;
+      }
+      /* Increase spacing between individual components */
+      gradio-lite .component,
+      gradio-lite .block {
+        margin-bottom: 2rem;
+      }
+    </style>
+  </head>
 	<body>
 		<gradio-lite>
 import gradio as gr
 from transformers_js_py import pipeline
-pipe = await pipeline("text-generation", "tniranjan/finetuned_gptneo-base-tinystories-ta_v3_onnx")
+pipe152M = await pipeline("text-generation", "tniranjan/finetuned_gptneo-base-tinystories-ta_v3_onnx")
+pipe68M = await pipeline("text-generation", "tniranjan/finetuned_gptneo-base-tinystories-ta_v3_onnx")
+pipe63M = await pipeline("text-generation", "tniranjan/finetuned_gptneo-base-tinystories-ta_v3_onnx")
 
-# Create a Gradio interface from the pipeline
-demo = gr.Interface.from_pipeline(pipe)
+async def fn(choice, text, do_sample, max_new_tokens,top_k):
+    if choice == "Medium GPTNeo":
+      pipe = pipe152M
+    elif choice == "Small GPTNeo":
+      pipe = pipe68M
+    else:
+      pipe = pipe63M
+    result = await pipe(text, do_sample=do_sample, max_new_tokens=int(max_new_tokens), top_k=int(top_k))
+    return result[0]['generated_text']
 
+demo = gr.Interface(
+	fn=fn,
+	inputs=[
+  gr.Dropdown(["Medium GPTNeo", "Small GPTNeo", "Small LLaMA"], label="Model", value="Medium GPTNeo"),
+  gr.Textbox(label="Text", value="சிறிய குட்டி செல்லி, ஒரு அழகான நாய்க்குட்டியைக் கண்டாள். அவர் பழுப்பு"),
+  gr.Checkbox(label="Do Sample", value=True),
+  gr.Number(label="Max New Tokens", value=250),
+  gr.Number(label="Top K", value=35)
+  ],
+	outputs=gr.Text(),
+)
 
 demo.launch()
 
