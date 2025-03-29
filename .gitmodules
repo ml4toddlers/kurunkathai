@@ -1,0 +1,3 @@
+[submodule "spaces/kurunkathai"]
+	path = spaces/kurunkathai
+	url = https://huggingface.co/spaces/tniranjan/kurunkathai
