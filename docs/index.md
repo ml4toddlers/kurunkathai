@@ -10,4 +10,9 @@ Hello there!
 
 Kurunkathai means tiny tale in Tamizh. Kurunkathai is a causal language model for telling tiny stories to tiny humans in Tamizh. Currently it is mostly work in progress. Follow along!
 
-<iframe src="demo.html" width="100%" height="1000" frameborder="0"></iframe>
+<iframe
+	src="https://tniranjan-kurunkathai.hf.space"
+	frameborder="0"
+	width="650"
+	height="1050"
+></iframe>
