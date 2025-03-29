@@ -5,7 +5,7 @@ def generate_text(model_path, tokenizer_path, prompt, max_new_tokens=150):
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
     model = AutoModelForCausalLM.from_pretrained(model_path)
     input_ids = tokenizer.encode(prompt, return_tensors="pt")
-    output = model.generate(input_ids, max_new_tokens= max_new_tokens, pad_token_id=tokenizer.eos_token_id, do_sample=True, top_k=100, attention_mask=input_ids.ne(tokenizer.pad_token_id))
+    output = model.generate(input_ids, max_new_tokens= max_new_tokens, pad_token_id=tokenizer.eos_token_id, do_sample=True, top_k=50, attention_mask=input_ids.ne(tokenizer.pad_token_id))
     return tokenizer.decode(output[0], skip_special_tokens=True)
 
 def write_as_markdown(prompt, output, filename):

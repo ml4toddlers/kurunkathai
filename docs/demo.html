@@ -1,68 +1,125 @@
 <!DOCTYPE html>
-	<head>
-		<script type="module" crossorigin src="https://cdn.jsdelivr.net/npm/@gradio/lite/dist/lite.js"></script>
-		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gradio/lite/dist/lite.css" />
-	 <style>
-      /* Style the body for a neutral background and remove default margins */
-      body {
-        margin: 0;
-        padding: 0;
-        font-family: Arial, sans-serif;
-        background-color: #f5f5f5;
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Transformers.js Text Generation</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 1rem;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    input[type="text"], textarea, select, input[type="number"] {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 1.5rem;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    #status {
+      margin-bottom: 1rem;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Transformers.js Text Generation</h2>
+    <div id="status">Loading models, please wait...</div>
+    <label for="modelSelect">Model</label>
+    <select id="modelSelect">
+      <option value="medium">Medium GPTNeo</option>
+      <option value="small_gptneo">Small GPTNeo</option>
+      <option value="small_llama">Small LLaMA</option>
+    </select>
+    
+    <label for="inputText">Input Text</label>
+    <textarea id="inputText" rows="3">சிறிய குட்டி செல்லி, ஒரு அழகான நாய்க்குட்டியைக் கண்டாள். அவர் பழுப்பு</textarea>
+    
+    <label>
+      <input type="checkbox" id="doSample" checked>
+      Do Sample
+    </label>
+    
+    <label for="maxNewTokens">Max New Tokens</label>
+    <input type="number" id="maxNewTokens" value="100">
+    
+    <label for="topK">Top K</label>
+    <input type="number" id="topK" value="35">
+    
+    <button id="generateBtn">Generate Text</button>
+    
+    <label for="outputText">Generated Text</label>
+    <textarea id="outputText" rows="5" readonly></textarea>
+  </div>
+  
+  <!-- Include Transformers.js via CDN as an ES module -->
+  <script type="module">
+    import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers?module";
+    
+    // Declare pipeline variables
+    let pipelineMedium, pipelineSmallGPT, pipelineSmallLlama;
+    
+    // Async function to load all models
+    async function loadModels() {
+      // Replace model IDs as needed; here, all three use the same ID as in your original code.
+      pipelineMedium = await pipeline("text-generation", "tniranjan/finetuned_gptneo-base-tinystories-ta_v3_onnx",{quantized:false, dtype:"fp32"});
+      pipelineSmallGPT = await pipeline("text-generation", "tniranjan/finetuned_tinystories_33M_pretrained_tinystories_ta",{quantized:false, dtype:"fp32"});
+      pipelineSmallLlama = await pipeline("text-generation", "tniranjan/finetuned_gptneo-base-tinystories-ta_v3_onnx",{quantized:false, dtype:"fp32"});
+      document.getElementById("status").textContent = "Models loaded.";
+    }
+    
+    // Call loadModels when DOM content is loaded
+    document.addEventListener("DOMContentLoaded", loadModels);
+    
+    // Function to run text generation based on user selections
+    async function generateText() {
+      const choice = document.getElementById("modelSelect").value;
+      const inputText = document.getElementById("inputText").value;
+      const doSample = document.getElementById("doSample").checked;
+      const maxNewTokens = parseInt(document.getElementById("maxNewTokens").value);
+      const topK = parseInt(document.getElementById("topK").value);
+      
+      let selectedPipeline;
+      if(choice === "medium") {
+        selectedPipeline = pipelineMedium;
+      } else if(choice === "small_gptneo") {
+        selectedPipeline = pipelineSmallGPT;
+      } else {
+        selectedPipeline = pipelineSmallLlama;
       }
-      /* Center the Gradio Lite app and add padding */
-      gradio-lite {
-        display: block;
-        max-width: 900px;
-        margin: 2rem auto;
-        padding: 2rem;
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        box-sizing: border-box;
-      }
-      /* Increase spacing between individual components */
-      gradio-lite .component,
-      gradio-lite .block {
-        margin-bottom: 2rem;
-      }
-    </style>
-  </head>
-	<body>
-		<gradio-lite>
-import gradio as gr
-from transformers_js_py import pipeline
-pipe152M = await pipeline("text-generation", "tniranjan/finetuned_gptneo-base-tinystories-ta_v3_onnx")
-pipe68M = await pipeline("text-generation", "tniranjan/finetuned_gptneo-base-tinystories-ta_v3_onnx")
-pipe63M = await pipeline("text-generation", "tniranjan/finetuned_gptneo-base-tinystories-ta_v3_onnx")
-
-async def fn(choice, text, do_sample, max_new_tokens,top_k):
-    if choice == "Medium GPTNeo":
-      pipe = pipe152M
-    elif choice == "Small GPTNeo":
-      pipe = pipe68M
-    else:
-      pipe = pipe63M
-    result = await pipe(text, do_sample=do_sample, max_new_tokens=int(max_new_tokens), top_k=int(top_k))
-    return result[0]['generated_text']
-
-demo = gr.Interface(
-	fn=fn,
-	inputs=[
-  gr.Dropdown(["Medium GPTNeo", "Small GPTNeo", "Small LLaMA"], label="Model", value="Medium GPTNeo"),
-  gr.Textbox(label="Text", value="சிறிய குட்டி செல்லி, ஒரு அழகான நாய்க்குட்டியைக் கண்டாள். அவர் பழுப்பு"),
-  gr.Checkbox(label="Do Sample", value=True),
-  gr.Number(label="Max New Tokens", value=250),
-  gr.Number(label="Top K", value=35)
-  ],
-	outputs=gr.Text(),
-)
-
-demo.launch()
-
-			<gradio-requirements>
-transformers-js-py
-			</gradio-requirements>
-		</gradio-lite>
-	</body>
+      
+      // Indicate that generation is in progress
+      document.getElementById("outputText").value = "Generating...";
+      
+      // Run the pipeline; note that options names match the Python code options.
+      const result = await selectedPipeline(inputText, { do_sample: doSample, max_new_tokens: maxNewTokens, top_k: topK });
+      
+      // Display the generated text (assuming the output is an array with an object containing generated_text)
+      document.getElementById("outputText").value = result[0].generated_text;
+    }
+    
+    // Set up event listener for the button
+    document.getElementById("generateBtn").addEventListener("click", generateText);
+  </script>
+</body>
 </html>
